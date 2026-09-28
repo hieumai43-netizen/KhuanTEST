@@ -1,35 +1,13 @@
-# Chusen Manager – Firestore approval fixed (v10)
+# Mold Lead Finder – FREE Scanner V0.4
 
-Bản này sửa lỗi tài khoản đã xuất hiện trong Firebase Authentication nhưng không có yêu cầu chờ duyệt trong Firestore.
+Bản test quét lead không dùng OpenAI API. V0.4 thêm Cloudflare Worker FREE làm proxy để tránh lỗi JSON/CORS khi GitHub Pages gọi nguồn web trực tiếp.
 
-## Điểm đã sửa
+## Cài lần đầu
+1. Đưa app lên GitHub Pages như bản cũ.
+2. Vào thư mục `cloudflare-worker`, mở `worker.js`.
+3. Cloudflare Dashboard → Workers & Pages → Create Worker → dán toàn bộ `worker.js` → Deploy.
+4. Mở URL `https://...workers.dev`; nếu hiện `{"ok":true,...}` là thành công.
+5. Trong app → Tổng quan → `⚙️ Cài Worker FREE` → dán URL Worker.
+6. Bấm `🔍 Quét ngay`.
 
-- Khi đăng ký, app tạo hồ sơ `users/{uid}` với `status: pending`.
-- Các tài khoản đã tạo ở bản cũ nhưng bị thiếu hồ sơ Firestore sẽ được **tự động khôi phục** khi đăng nhập lại.
-- Nếu Firestore Rules chưa được Publish, app hiện đúng hướng dẫn thay vì báo lỗi mơ hồ.
-- Quản trị viên thấy huy hiệu số tài khoản chờ duyệt và có thể Duyệt / Chờ / Khóa.
-- Tăng cache lên v10 để GitHub Pages và iPhone tải code mới.
-
-## Bước bắt buộc duy nhất trong Firebase
-
-Firebase Console → Firestore Database → **Rules**.
-
-1. Mở file `firestore.rules` trong gói này.
-2. Copy toàn bộ nội dung.
-3. Dán đè vào cửa sổ Rules.
-4. Bấm **Publish**.
-
-Nếu chưa Publish Rules thì không có code phía trình duyệt nào có thể ghi dữ liệu vào Firestore.
-
-## Cách cập nhật GitHub
-
-Giải nén ZIP rồi tải **toàn bộ file và thư mục bên trong** lên repository GitHub Pages, ghi đè bản cũ. Sau đó mở app và tải lại trang.
-
-## Cách khôi phục 2 email đã đăng ký trước đó
-
-Sau khi Publish Rules và cập nhật bản v10:
-
-1. Đăng nhập bằng từng email đã đăng ký trước đó.
-2. App tự tạo hồ sơ `pending` còn thiếu.
-3. Đăng nhập tài khoản quản trị `hieumai43@gmail.com`.
-4. Bấm **👑 Duyệt tài khoản** và phê duyệt.
+Không cần `OPENAI_API_KEY` và không tốn token OpenAI. Kết quả là tín hiệu web công khai, nên luôn mở `Nguồn` để xác minh trước khi liên hệ.

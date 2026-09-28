@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chusen-manager-v10-firestore-self-heal';
+const CACHE_NAME = 'mold-lead-free-scanner-v04';
 const ASSETS = [
   './','./index.html','./styles.css','./app.js','./auth.js','./firebase-config.js','./manifest.json',
   './assets/apple-touch-icon.png','./assets/icon-192.png','./assets/icon-512.png','./assets/favicon.png',

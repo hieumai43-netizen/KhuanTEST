@@ -1,7 +1,7 @@
-# KhuanTEST FREE VN V0.8 — Buyer Finder
+# KhuanTEST FREE VN V0.8.1 — Buyer Finder
 
-- Tập trung tìm khách hàng/người mua tại Việt Nam, không tìm công ty quảng cáo dịch vụ khuôn.
-- Chọn ngành khách hàng mục tiêu.
-- Worker tạo truy vấn buyer-intent và loại trừ seller/đối thủ.
-- Dùng Serper API + Cloudflare Worker; không dùng OpenAI.
-- Giữ nguyên secret SERPER_API_KEY đã cài trên Cloudflare.
+- Không dùng OpenAI.
+- Cloudflare Worker + Serper Free.
+- Sửa lỗi `Query pattern not allowed for free accounts`: không dùng OR/ngoặc/negative operators trong query.
+- Mỗi lần quét dùng tối đa 3 truy vấn tự nhiên, sau đó Worker tự chấm điểm buyer intent và loại seller/đối thủ.
+- Giữ nguyên `SERPER_API_KEY` Secret hiện có trên Cloudflare.

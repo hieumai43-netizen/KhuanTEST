@@ -6,82 +6,67 @@ const json=(o,s=200)=>new Response(JSON.stringify(o),{status:s,headers:{...CORS,
 const norm=s=>(s||'').replace(/\s+/g,' ').trim();
 const lower=s=>norm(s).toLowerCase();
 
-// V0.9 BUYER-FIRST: tìm bên CẦN SẢN XUẤT, không tìm bên BÁN khuôn.
+// V1.1 SOCIAL MULTI-MOLD: săn người MUA/đặt sản xuất, không săn xưởng đang quảng cáo.
 const sellerWords=[
- 'nhận gia công','chuyên gia công','chuyên thiết kế','thiết kế chế tạo khuôn','chế tạo khuôn mẫu',
- 'công ty khuôn mẫu','xưởng khuôn','dịch vụ làm khuôn','nhà sản xuất khuôn','sản xuất khuôn mẫu',
- 'gia công khuôn mẫu theo yêu cầu','nhận làm khuôn','cung cấp khuôn','dịch vụ ép nhựa','nhận ép nhựa',
- 'xưởng ép nhựa','công ty ép nhựa','chuyên ép nhựa','nhận sản xuất theo yêu cầu','dịch vụ cnc',
- 'xưởng cnc','nhận gia công cnc','chuyên khuôn mẫu','mold maker','mold manufacturer','mould manufacturer'
+ 'nhận gia công','chuyên gia công','chuyên thiết kế','thiết kế chế tạo khuôn','chế tạo khuôn mẫu','công ty khuôn mẫu','xưởng khuôn',
+ 'dịch vụ làm khuôn','nhà sản xuất khuôn','sản xuất khuôn mẫu','gia công khuôn mẫu theo yêu cầu','nhận làm khuôn','cung cấp khuôn',
+ 'dịch vụ ép nhựa','nhận ép nhựa','xưởng ép nhựa','công ty ép nhựa','chuyên ép nhựa','dịch vụ cnc','xưởng cnc','nhận gia công cnc',
+ 'chuyên khuôn mẫu','mold maker','mold manufacturer','mould manufacturer','nhận làm khuôn dập','chuyên khuôn dập'
 ];
 const buyerIntent=[
- 'cần tìm','đang tìm','tìm kiếm nhà cung cấp','tìm nhà cung cấp','tìm supplier','tìm vendor','tìm đối tác',
- 'cần đối tác','cần báo giá','yêu cầu báo giá','mời báo giá','mời chào giá','mời thầu','chào giá cạnh tranh',
- 'rfq','request for quotation','cần gia công','thuê gia công','tìm đơn vị','cần sản xuất','đặt sản xuất',
- 'đặt hàng','cần làm mẫu','sản xuất thử','cần mẫu thử','tìm nguồn cung','tìm nguồn hàng'
+ 'cần tìm','đang tìm','ai biết chỗ','anh em biết chỗ','xin địa chỉ','tìm giúp','có xưởng nào','bên nào làm','bên nào nhận','ai nhận làm',
+ 'tìm nhà cung cấp','tìm supplier','tìm vendor','tìm đối tác','cần đối tác','cần báo giá','xin báo giá','yêu cầu báo giá','mời báo giá','mời chào giá',
+ 'rfq','cần gia công','thuê gia công','tìm đơn vị','cần sản xuất','đặt sản xuất','đặt hàng','cần làm mẫu','sản xuất thử','cần mẫu thử','tìm nguồn cung'
 ];
-const productNeed=[
- 'chi tiết nhựa','linh kiện nhựa','vỏ nhựa','sản phẩm nhựa','phụ tùng nhựa','plastic part','plastic parts',
- 'plastic component','injection molded','injection molding part','abs','pp','pc','pa66','pom','tpe','tpu',
- 'prototype','mẫu 3d','bản vẽ 3d','bản vẽ kỹ thuật','theo bản vẽ','theo mẫu','oem','odm'
-];
-const growthSignals=[
- 'phát triển sản phẩm','sản phẩm mới','dự án mới','ra mắt sản phẩm','r&d','nghiên cứu phát triển',
- 'mở rộng sản xuất','mở rộng nhà máy','nhà máy mới','tăng công suất','nội địa hóa','localization',
- 'chuỗi cung ứng','supply chain','purchasing','procurement','mua hàng','sourcing','supplier development'
-];
-const industrialWords=['điện tử','ô tô','xe máy','đồ gia dụng','thiết bị y tế','bao bì','linh kiện','nhà máy','sản xuất','oem','fdi','cơ khí','thiết bị','nhựa'];
-const noiseWords=['khóa học','đào tạo','rao bán máy','bán máy ép','máy ép nhựa cũ','máy cnc cũ','pinterest','youtube','wiki','từ điển','định nghĩa'];
-
+const plasticNeed=['khuôn ép nhựa','ép nhựa','chi tiết nhựa','linh kiện nhựa','vỏ nhựa','sản phẩm nhựa','plastic part','injection molding','abs','pp','pc','pa66','pom','tpe','tpu'];
+const stampingNeed=['khuôn dập','dập kim loại','dập tấm','dập nguội','dập nóng','dập liên hoàn','progressive die','stamping','sheet metal','terminal','bracket','lá đồng','lá thép','chi tiết dập'];
+const cncNeed=['gia công cnc','chi tiết máy','phay cnc','tiện cnc','cắt dây','edm','wire cut','jig','fixture','đồ gá'];
+const designNeed=['theo bản vẽ','theo mẫu','file 3d','bản vẽ 3d','bản vẽ kỹ thuật','prototype','oem','odm','sản phẩm mới','làm mẫu'];
+const growthSignals=['phát triển sản phẩm','sản phẩm mới','dự án mới','r&d','nghiên cứu phát triển','mở rộng sản xuất','nội địa hóa','localization','purchasing','procurement','mua hàng','sourcing'];
+const noiseWords=['khóa học','đào tạo','rao bán máy','bán máy ép','máy ép nhựa cũ','máy cnc cũ','pinterest','youtube','wiki','từ điển','tuyển dụng','việc làm'];
 function hits(h,words){return words.filter(w=>h.includes(w)).length}
 function classify(title,snippet,url){
  const h=lower(title+' '+snippet), host=lower(url);
- const seller=hits(h,sellerWords), buyer=hits(h,buyerIntent), part=hits(h,productNeed), growth=hits(h,growthSignals), industrial=hits(h,industrialWords), noise=hits(h,noiseWords);
- const procurementHost=/dauthau|muasamcong|procurement|supplier|vendor|bid|tender/i.test(host);
- const socialHost=/facebook\.com|groups\.google|forum|diendan/i.test(host);
- // Buyer intent là điều kiện mạnh nhất. Product need + growth là lead gián tiếp.
- let score=8 + (socialHost?10:0) + buyer*30 + Math.min(part,3)*10 + Math.min(growth,2)*10 + Math.min(industrial,3)*3 + (procurementHost?12:0) - seller*45 - noise*20;
- if(buyer>=1 && part>=1) score+=12;
- if(buyer>=1 && /báo giá|chào giá|rfq|mời thầu|cần sản xuất|cần gia công/.test(h)) score+=8;
+ const seller=hits(h,sellerWords), buyer=hits(h,buyerIntent), plastic=hits(h,plasticNeed), stamping=hits(h,stampingNeed), cnc=hits(h,cncNeed), design=hits(h,designNeed), growth=hits(h,growthSignals), noise=hits(h,noiseWords);
+ const socialHost=/facebook\.com|groups\.google|forum|diendan|tinhte\.vn|reddit\.com|linkedin\.com/i.test(host);
+ const need=plastic+stamping+cnc+design;
+ let score=5+(socialHost?18:0)+buyer*28+Math.min(need,4)*9+Math.min(growth,2)*8-seller*50-noise*20;
+ if(buyer>=1&&need>=1) score+=15;
+ if(/cần báo giá|xin báo giá|cần gia công|cần sản xuất|bên nào làm|ai nhận làm|có xưởng nào/.test(h)) score+=8;
  score=Math.max(1,Math.min(99,score));
- let label='Không đủ tín hiệu';
- if(seller>0) label='Đối thủ / bên bán dịch vụ';
- else if(buyer>=1 && part>=1) label='🔥 Nhu cầu sản xuất rõ';
- else if(buyer>=1) label='🟠 Có tín hiệu mua';
- else if(part>=1 && growth>=1) label='🟡 Lead phát triển sản phẩm';
- else if(growth>=1 && industrial>=1) label='🟡 Lead gián tiếp';
- return {score,seller,buyer,part,growth,industrial,noise,procurementHost,socialHost,label};
+ let category=stamping?'Khuôn dập / dập kim loại':plastic?'Khuôn ép nhựa':cnc?'CNC / cơ khí':'Cơ khí / khuôn mẫu';
+ let label=seller?'Đối thủ / bên bán dịch vụ':buyer&&need?'🔥 Người mua có nhu cầu rõ':buyer?'🟠 Đang tìm nhà cung cấp':growth&&need?'🟡 Lead phát triển sản phẩm':'Không đủ tín hiệu';
+ return {score,seller,buyer,need,growth,noise,socialHost,category,label};
 }
-
 function simpleQueries(raw,industry){
  const ind=norm((industry||'Tất cả ngành').replace(/["'()]/g,' '));
- const suffix=ind && ind!=='Tất cả ngành' ? ' '+ind : '';
+ const suffix=ind&&ind!=='Tất cả ngành'?' '+ind:'';
  const r=lower(raw);
- // V1.0 SOCIAL-FIRST: ưu tiên nơi người thật thường hỏi việc/cần vendor.
- // Serper chỉ nhìn thấy nội dung PUBLIC đã được search engine index; không vượt đăng nhập hay nhóm riêng tư.
- if(r.includes('dập')) return [
-   `site:facebook.com cần gia công chi tiết dập theo bản vẽ${suffix}`,
-   `site:facebook.com/groups cần xưởng dập kim loại${suffix}`,
-   `site:facebook.com tìm xưởng cơ khí dập chi tiết${suffix}`,
-   `cần gia công chi tiết dập theo bản vẽ${suffix} diễn đàn cơ khí`,
-   `tìm xưởng dập kim loại số lượng${suffix} Việt Nam`
+ const plastic=[
+  `site:facebook.com/groups "cần" "khuôn ép nhựa"${suffix}`,
+  `site:facebook.com "bên nào" "ép nhựa" "theo mẫu"${suffix}`,
+  `site:facebook.com "cần gia công" "chi tiết nhựa"${suffix}`,
+  `site:facebook.com "xin báo giá" "vỏ nhựa"${suffix}`,
+  `"cần làm khuôn ép nhựa"${suffix} diễn đàn cơ khí`
  ];
- if(r.includes('cnc')) return [
-   `site:facebook.com cần gia công CNC theo bản vẽ${suffix}`,
-   `site:facebook.com/groups tìm xưởng CNC${suffix}`,
-   `site:facebook.com cần làm chi tiết máy số lượng${suffix}`,
-   `cần gia công CNC theo bản vẽ${suffix} diễn đàn cơ khí`,
-   `tìm xưởng gia công chi tiết máy${suffix} Việt Nam`
+ const stamping=[
+  `site:facebook.com/groups "cần" "khuôn dập"${suffix}`,
+  `site:facebook.com "bên nào" "dập kim loại" "theo bản vẽ"${suffix}`,
+  `site:facebook.com "cần gia công" "chi tiết dập"${suffix}`,
+  `site:facebook.com "xin báo giá" "dập tấm"${suffix}`,
+  `site:facebook.com "tìm xưởng" "dập liên hoàn"${suffix}`,
+  `"cần gia công chi tiết dập"${suffix} diễn đàn cơ khí`
  ];
- return [
-   `site:facebook.com cần làm khuôn ép nhựa${suffix}`,
-   `site:facebook.com/groups cần làm khuôn ép nhựa${suffix}`,
-   `site:facebook.com tìm xưởng làm khuôn nhựa theo mẫu${suffix}`,
-   `site:facebook.com cần ép nhựa theo mẫu số lượng${suffix}`,
-   `site:facebook.com cần gia công vỏ nhựa ABS theo bản vẽ${suffix}`,
-   `cần làm khuôn ép nhựa${suffix} diễn đàn cơ khí`,
-   `tìm xưởng làm khuôn nhựa theo mẫu${suffix} Việt Nam`
+ const cnc=[
+  `site:facebook.com/groups "cần gia công CNC" "theo bản vẽ"${suffix}`,
+  `site:facebook.com "bên nào nhận" "chi tiết máy"${suffix}`,
+  `site:facebook.com "xin báo giá" "phay CNC"${suffix}`,
+  `"cần gia công CNC"${suffix} diễn đàn cơ khí`
  ];
+ if(r.includes('tất cả')||r.includes('tat ca')||r.includes('đa loại')) return [...plastic.slice(0,3),...stamping.slice(0,4),...cnc.slice(0,2)];
+ if(r.includes('dập')||r.includes('dap')||r.includes('stamping')) return stamping;
+ if(r.includes('cnc')||r.includes('cơ khí')||r.includes('co khi')) return cnc;
+ return plastic;
 }
 async function serperSearch(key,q){
  const r=await fetch('https://google.serper.dev/search',{
